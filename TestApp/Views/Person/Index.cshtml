@@ -1,0 +1,327 @@
+@using Azure
+@using Azure.Core
+@model IEnumerable<TestApp.Models.Person>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<form asp-action="Index" method="post" enctype="multipart/form-data">
+    <input type="file" name="file"/>
+    <hr/>
+    <button type="submit">Upload</button>
+</form>
+
+<hr/>
+
+@if (Model.Count() > 0)
+{
+    <h5>Filter by name</h5>
+    <input type="text" id="nameInput" onkeyup="FilterByName()" placeholder="Search for names.." title="Type in a name">
+    <h5>Filter by Price</h5>
+    <input type="number" id="minSalaryInput" onkeyup="FilterBySalary()" placeholder="min" title="min">
+    <input type="number" id="maxSalaryInput" onkeyup="FilterBySalary()" placeholder="max" title="max">
+    <h5>Filter by Marriage</h5>
+    <input type="checkbox" id="marriageInput" onclick="FilterByMarriage()" placeholder="max" title="max">
+    <h5>Filter by date</h5>
+    <input type="date" id="minDateInput" value="1970-10-10" onchange="FilterByDate()" placeholder="min" title="min">
+    <input type="date" id="maxDateInput" value="2022-12-12" onchange="FilterByDate()" placeholder="max" title="max">
+
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th onclick="sortBy(0)">
+                @Html.DisplayNameFor(model => model.Name)
+            </th>
+            <th onclick="sortBy(1)">
+                @Html.DisplayNameFor(model => model.Date)
+            </th>
+            <th onclick="sortBy(2)">
+                @Html.DisplayNameFor(model => model.Married)
+            </th>
+            <th onclick="sortBy(3)">
+                @Html.DisplayNameFor(model => model.Salary)
+            </th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    <input asp-for="@item.Name" readonly="readonly" class="form-control"/>
+                    <span asp-validation-for="@item.Name" class="text-danger"></span>
+                </td>
+                <td>
+                    <input asp-for="@item.Date" readonly="readonly" class="form-control"/>
+                    <span asp-validation-for="@item.Date" class="text-danger"></span>
+
+                </td>
+                <td>
+                    <input asp-for="@item.Married" readonly="readonly" />
+                    <span asp-validation-for="@item.Married" class="text-danger"></span>
+                </td>
+                <td>
+                    <input asp-for="@item.Salary" readonly="readonly" class="form-control"/>
+                    <span asp-validation-for="@item.Salary" class="text-danger"></span>
+                </td>
+                <td>
+                    <button onclick="editInfo(this)">Edit</button>
+                    <button onclick="submitInfo(@item.Id, this)" style="display: none;">Submit</button>
+                    <form asp-controller="Person" asp-action="Delete" asp-route-id="@item.Id" method="post">
+                        <input type="submit" value="Delete" class="btn btn-danger"/>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    
+    <div id="#SomeDivToShowTheResult"></div>
+}
+
+<script>
+    var table = document.querySelector("table");
+    var tr = table.getElementsByTagName("tr");
+
+
+    function FilterByName() {
+      var input, filter, td, i, txtValue;
+      input = document.getElementById("nameInput");
+      filter = input.value.toUpperCase();
+
+      for (i = 0; i < tr.length; i++) {
+        td = tr[i].getElementsByTagName("td")[0];
+        if (td) {
+          txtValue = td.querySelector("input").value;
+          if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }       
+      }
+    }
+    
+    function FilterBySalary() {
+          var td, i, txtValue;
+        
+          const minInput = document.getElementById("minSalaryInput").value;
+          const maxInput = document.getElementById("maxSalaryInput").value;
+          
+          if (!minInput && !maxInput)
+              return;
+          
+          if ((!minInput || minInput.length === 0) && maxInput){
+              //search for everything bigger than min
+
+              for (i = 0; i < tr.length; i++) {
+                td = tr[i].getElementsByTagName("td")[3];
+                if (td) {
+                  txtValue = td.querySelector("input").value;
+                  if (Number(txtValue) <= Number(maxInput)) {
+                    tr[i].style.display = "";
+                  } else {
+                    tr[i].style.display = "none";
+                  }
+                }       
+              }
+              
+              return;
+          }
+          
+          if ((!maxInput || maxInput.length === 0) && minInput){
+              
+             for (i = 0; i < tr.length; i++) {
+               td = tr[i].getElementsByTagName("td")[3];
+               if (td) {
+                  txtValue = td.querySelector("input").value;
+                 if (Number(txtValue) >= Number(minInput)) {
+                   tr[i].style.display = "";
+                 } else {
+                   tr[i].style.display = "none";
+                 }
+               }       
+             }
+                           
+              return;
+          }
+          
+          for (i = 0; i < tr.length; i++) {
+            td = tr[i].getElementsByTagName("td")[3];
+            if (td) {
+                  txtValue = td.querySelector("input").value;
+              if (Number(txtValue) >= Number(minInput) && Number(txtValue) <= Number(maxInput)) {
+                tr[i].style.display = "";
+              } else {
+                tr[i].style.display = "none";
+              }
+            }       
+          }
+          
+         }
+        
+        function FilterByMarriage() {
+              var input, td, i;
+              input = document.getElementById("marriageInput");
+              
+              for (i = 0; i < tr.length; i++) {
+                td = tr[i].getElementsByTagName("td")[2];
+                if (td) {
+                  if (td.querySelector("input").checked === input.checked) {
+                    tr[i].style.display = "";
+                  } else {
+                    tr[i].style.display = "none";
+                  }
+                }       
+              }
+            }
+            
+            function FilterByDate() {
+                  var td, i, txtValue;
+                                         
+                  var minInput = document.getElementById("minDateInput").value;
+                  var maxInput = document.getElementById("maxDateInput").value;
+                  
+                  for (i = 0; i < tr.length; i++) {
+                    td = tr[i].getElementsByTagName("td")[1];
+                    if (td) {
+                      txtValue = td.querySelector("input").value;
+                      if (Number(Date.parse(txtValue)) >= Number(Date.parse(minInput)) && 
+                      Number(Date.parse(txtValue)) <= Number(Date.parse(maxInput))) {
+                        tr[i].style.display = "";
+                      } else {
+                        tr[i].style.display = "none";
+                      }
+                    }       
+                  }
+                }
+            
+
+            var cPrev = -1; // last clicked column
+    
+            function sortBy(c) {
+                var rows = table.rows.length; 
+                var columns = table.rows[0].cells.length; 
+                var arrTable = [...Array(rows)].map(e => Array(columns)); 
+            
+                for (ro=0; ro<rows; ro++) { 
+                    for (co=0; co<columns; co++) { 
+                        
+                        if (ro == 0)
+                            arrTable[ro][co] = table.rows[ro].cells[co];
+                        else
+                        arrTable[ro][co] = table.rows[ro].cells[co].querySelector("input").value;
+                    }
+                }
+            
+                th = arrTable.shift(); // remove the header row from the array
+                
+                if (c !== cPrev) { // different column is clicked, sort by new column
+                    arrTable.sort(
+                        function (a, b) {
+                            if (a[c] === b[c]) {
+                                return 0;
+                            } else {
+                                if (c == 1) {
+                                    var d1 = Date.parse(a[c]);
+                                    var d2 = Date.parse(b[c]);
+                                    return (d1 < d2) ? -1 : 1;
+                                }
+                                if (c == 3){
+                                    return (Number(a[c]) < Number(b[c])) ? -1 : 1;
+                                }
+                                return (a[c] < b[c]) ? -1 : 1;
+                            }
+                        }
+                    );
+                } else { // the same column is clicked
+                    arrTable.reverse();
+                }
+                
+                cPrev = c;
+            
+                arrTable.unshift(th);
+            
+                for (ro=0; ro<rows; ro++) {
+                    for (co=0; co<columns; co++) {
+                        if (ro == 0)
+                             table.rows[ro].cells[co] = arrTable[ro][co];
+                        else
+                        table.rows[ro].cells[co].querySelector("input").value = arrTable[ro][co];
+                    }
+                }
+            }
+            
+            
+            
+            function editInfo(el){
+                
+               
+                var trToChange = document.querySelector("table >tbody > tr:nth-child(" + el.parentElement.parentElement.rowIndex + ")");
+                
+                var editBtn = el;
+                var submitBtn = trToChange.children[4].children[1];
+                           
+                editBtn.disabled = true;
+                editBtn.visible = false;
+                editBtn.style.display = "none";
+                
+                submitBtn.disabled = false;
+                submitBtn.visible = true;
+                submitBtn.style.display = "";
+                                
+                var tds = trToChange.children;
+                
+                for (let i = 0; i < 4; i++){
+                    tds[i].querySelector("input").readOnly = false;
+                }
+
+            }
+            
+            async function submitInfo(id, el){
+                
+                var trToChange = document.querySelector("table >tbody > tr:nth-child(" + el.parentElement.parentElement.rowIndex + ")");               
+                                                
+                var editBtn = trToChange.children[4].children[0];
+                var submitBtn = el;
+                           
+                editBtn.disabled = false;
+                editBtn.style.display = "";
+                
+                submitBtn.disabled = true;
+                submitBtn.style.display = "none";
+                                
+                var tds = trToChange.children;
+                
+                for (let i = 0; i < 4; i++){
+                    tds[i].querySelector("input").readOnly = true;
+                }
+                
+                var url = "@Url.Action("Edit","Person")";
+                
+                var model = { id: id,
+                              Name : tds[0].querySelector("input").value,
+                              Date: (new Date(tds[1].querySelector("input").value)),
+                              Married: tds[2].querySelector("input").checked,
+                              Salary: Number(tds[3].querySelector("input").value)
+                };
+                
+                await $.ajax({
+                    type: "POST",
+                    data: JSON.stringify(model),
+                    url: url,
+                    contentType: "application/json"
+                }).done(function (res) {
+                      console.log("Done");
+                  });
+              
+            }
+            
+</script>
+
+
